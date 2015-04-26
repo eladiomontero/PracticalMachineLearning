@@ -1,0 +1,82 @@
+# Practical Machine Learning Project
+
+## Introduction
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively.  One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. This project will try to predict whether the participants did the exercise well or not.
+
+## Getting the data
+The data used to do this project is provided by Groupware@LES http://groupware.les.inf.puc-rio.br/har
+
+In this project we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+
+
+```{r warning=FALSE}
+library(caret)
+library(ggplot2)
+training_file = download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "training.csv", method="curl")
+
+testing_file = download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "testing.csv", method="curl")
+
+```
+
+## Reading the data
+
+
+```{r warning=FALSE}
+testing_p = read.csv("../testing.csv", na.strings =c("",'', "NA"))
+training_p = read.csv("../training.csv", na.strings =c("",'', "NA"))
+```
+
+## Exploratory Analysis
+
+We are going to build our model on the training dataset, the testing dataset will be for the other part of the project.
+
+The output needed to determinate if the exercise is well done or not, is the variable classe:
+
+```{r warning=FALSE}
+plot(training_p$classe)
+```
+ 
+As we see, there's a constant distribution on the variables, so we get a very good balance between the posible outcomes.
+
+
+## Training and Testing Dataset.
+
+To create our model and cross validate it, we need two different datasets, training and testing. After that we are goint to eliminate any column with NA values.
+
+```{r warning=FALSE}
+inTrain = createDataPartition(y = training_p$classe, p = 0.75, list = F)
+training = training_p[inTrain,]
+testing = training_p[-inTrain,]
+training_filt = training[ , colSums(is.na(training)) == 0]
+set.seed(2983)
+```
+
+## Creating the model.
+
+In order to create the model, we need to pre process the numeric variables, if we see the plot for this variable, we see that the variable is very skewed.
+
+```{r warning=FALSE}
+hist(training_filt$gyros_forearm_z)
+```
+To fix this we will use the PCA method, and center and scale it, to give it a more constant distribution.
+
+Then we will use the random forest method.Random Forests are good to use as a first cut when you don't know the underlying model, or when you need to produce a decent model under severe time pressure. (Source: kaggle.com)
+
+```{r warning=FALSE}
+model = train(classe~., data = training_filt, method = "rf", preProcess = "pca")
+```
+
+## Cross Validation
+
+We will test the model against the testing data, to see how we did:
+
+```{r warning=FALSE}
+confusionMatrix(testing$classe, predict(model, newdata = testing))
+```
+
+
+As we can see the model is very accurate (+95%) and works very well on this case.
+
+
